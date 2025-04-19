@@ -8,7 +8,6 @@
 #include <windows.h>
 
 #include <iostream>
-#include <memory>
 #include <string>
 #include <vector>
 #include <limits.h>
@@ -17,6 +16,7 @@
 #include <fstream>
 
 #pragma comment(lib, "urlmon.lib")
+
 const std::string base64_chars =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 "abcdefghijklmnopqrstuvwxyz"
@@ -85,29 +85,23 @@ std::string to_string(const BasicJsonType& j)
     return j.dump();
 }
 
-struct StreamDeleter {
-    void operator()(IStream* p) const { if (p) p->Release(); }
-};
-
-std::string DownloadUrlContent(const std::wstring& url) {
-    std::unique_ptr<IStream, StreamDeleter> stream;
+std::string DownloadUrlContent(const std::string& url)
+{
     IStream* tempStream = nullptr;
 
-    if (SUCCEEDED(URLOpenBlockingStream(nullptr, url.c_str(), &tempStream, 0, nullptr))) {
-        stream.reset(tempStream);
+    if (SUCCEEDED(URLOpenBlockingStreamA(nullptr, url.c_str(), &tempStream, 0, nullptr))) {
 
         std::string content;
-        char buffer[4096];
+        char buffer[524288];
         ULONG bytesRead = 0;
 
-        while (SUCCEEDED(stream->Read(buffer, sizeof(buffer), &bytesRead)) && bytesRead > 0) {
+        while (SUCCEEDED(tempStream->Read(buffer, sizeof(buffer), &bytesRead)) && bytesRead > 0) {
             content.append(buffer, bytesRead);
         }
 
+        tempStream->Release();
         return content;
     }
-
-    return "";
 }
 
 std::string truncate(std::string number)

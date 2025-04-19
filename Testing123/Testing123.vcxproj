@@ -391,6 +391,7 @@
     <ClInclude Include="src\version_win32.h" />
     <ClInclude Include="src\warnless.h" />
     <ClInclude Include="src\ws.h" />
+    <ClInclude Include="utility.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\lib\Makefile.inc" />
@@ -411,6 +412,7 @@
     <ClCompile Include="include\zlib\trees.c" />
     <ClCompile Include="include\zlib\uncompr.c" />
     <ClCompile Include="include\zlib\zutil.c" />
+    <ClCompile Include="utility.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

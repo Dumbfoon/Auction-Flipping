@@ -13,96 +13,91 @@
 #define LOG(x) if(DEBUG) std::cout << x
 #define TEMPORARY(x) if(TEMP) std::cout << x
 
-const std::string auctionStr = "https://api.hypixel.net/v2/skyblock/auctions";
-const std::wstring auctionQuery = std::wstring(auctionStr.begin(), auctionStr.end());
-
-const std::string itemStr = "https://api.hypixel.net/v2/resources/skyblock/items";
-const std::wstring itemQuery = std::wstring(itemStr.begin(), itemStr.end());
-
 int main()
 {
     auto print_key_value = [](const auto& key, const auto& value)
-        {
-            if (value != ULONG_MAX && value != NULL) std::cout << "Item:[" << key << "] LBIN:[" << truncate(std::to_string(value)) << "]\n";
-        };
+    {
+        if (value != ULONG_MAX && value != NULL) std::cout << "Item:[" << key << "] LBIN:[" << truncate(std::to_string(value)) << "]\n";
+    };
 
     try {
-        nlohmann::json auctionBig = nlohmann::json::parse(DownloadUrlContent(auctionQuery));
-        nlohmann::json itemInfo = nlohmann::json::parse(DownloadUrlContent(itemQuery));
+        /*get item API data*/
+        nlohmann::json itemData = nlohmann::json::parse(DownloadUrlContent("https://api.hypixel.net/v2/resources/skyblock/items"));
 
+        /*create the item map*/
         std::unordered_map<std::string, unsigned long> itemMap;
 
-        size_t items = itemInfo["items"].size();
-        LOG("There are currently " + std::to_string(items) + " items.\n");
+        /*find out how many items there are*/
+        size_t items = itemData["items"].size();
 
-        size_t pages = auctionBig["totalPages"];
-
+        /*setup item map*/
         for (size_t i = 0; i < items; i++)
         {
-            std::string itemID = itemInfo["items"][i]["id"];
+            std::string itemID = itemData["items"][i]["id"];
             itemMap[itemID] = ULONG_MAX;
         }
 
-        for (size_t n = 0; n < pages; n++)
+        /*run until program terminates*/
+        while (true)
         {
-            const std::string auctStr = auctionStr + "?page=" + std::to_string(n);
-            const std::wstring auctQuery = std::wstring(auctStr.begin(), auctStr.end());
-            nlohmann::json auctionInfo = nlohmann::json::parse(DownloadUrlContent(auctQuery));
-            size_t auctions = auctionInfo["auctions"].size();
-            LOG("There are currently " + std::to_string(auctions) + " auctions on Page " + std::to_string(n) + ".\n");
-            for (size_t i = 0; i < auctions; i++)
+            /*find number of AH pages*/
+            bool end = false;
+
+            /*gather data for every auction*/
+            for (size_t n = 0; n < 100 && !end; n++)
             {
-                size_t indexID = NULL;
-                size_t indexEND = NULL;
-                std::vector<unsigned char> decompressedData = decompressGzip(base64_decode(auctionInfo["auctions"][i]["item_bytes"]));
-                std::string skyblockID;
-                for (size_t j = 0; j < decompressedData.size() - 3; j++)
+                nlohmann::json auctionInfo = nlohmann::json::parse(DownloadUrlContent("https://api.hypixel.net/v2/skyblock/auctions?page=" + std::to_string(n)));
+                size_t auctions = auctionInfo["auctions"].size();
+                if (auctionInfo["page"] == auctionInfo["totalPages"]) end = true;
+                for (size_t i = 0; i < auctions; i++)
                 {
-                    //if in the form id X
-                    if ((int)decompressedData[j] == 105 && (int)decompressedData[j + 1] == 100 && (int)decompressedData[j + 2] == 0 && (int)decompressedData[j - 1] != 117)
+                    size_t indexID = NULL;
+                    size_t indexEND = NULL;
+                    std::vector<unsigned char> decompressedData = decompressGzip(base64_decode(auctionInfo["auctions"][i]["item_bytes"]));
+                    std::string skyblockID;
+                    for (size_t j = 0; j < decompressedData.size() - 3; j++)
                     {
-                        indexID = j;
-                        size_t x = j + 4;
-                        while (true)
+                        //if in the form id X
+                        if ((int)decompressedData[j] == 105 && (int)decompressedData[j + 1] == 100 && (int)decompressedData[j + 2] == 0 && (int)decompressedData[j - 1] != 117)
                         {
-                            if ((int)decompressedData[x] == 0)
+                            indexID = j;
+                            size_t x = j + 4;
+                            while (true)
                             {
-                                if ((int)decompressedData[x + 1] == 0) indexEND = x + 1;
-                                else indexEND = x;
-                                break;
+                                if ((int)decompressedData[x] == 0)
+                                {
+                                    if ((int)decompressedData[x + 1] == 0) indexEND = x + 1;
+                                    else indexEND = x;
+                                    break;
+                                }
+                                x++;
                             }
-                            x++;
                         }
                     }
-                }
-                if (indexID == NULL)
-                {
-                    //LOG(auctionInfo["auctions"][i]["item_name"] << "\n");
-                    throw std::runtime_error("Failed to assign ID index properly.");
-                }
-                if (indexEND == NULL)
-                {
-                    throw std::runtime_error("Failed to assign UUID index properly.");
+                    if (indexID == NULL) throw std::runtime_error("Failed to assign ID index properly.");
+                    if (indexEND == NULL) throw std::runtime_error("Failed to assign END index properly.");
+
+                    for (size_t j = indexID + 4; j < indexEND - 1; j++)
+                    {
+                        skyblockID += decompressedData[j];
+                    }
+
+                    if (auctionInfo["auctions"][i]["starting_bid"] < itemMap[skyblockID] && auctionInfo["auctions"][i]["bin"])
+                    {
+                        itemMap[skyblockID] = auctionInfo["auctions"][i]["starting_bid"];
+                    }
+
                 }
 
-                for (size_t j = indexID + 4; j < indexEND - 1; j++)
-                {
-                    skyblockID += decompressedData[j];
-                }
-
-                if (auctionInfo["auctions"][i]["starting_bid"] < itemMap[skyblockID] && auctionInfo["auctions"][i]["bin"])
-                {
-                    itemMap[skyblockID] = auctionInfo["auctions"][i]["starting_bid"];
-                }
-
+                std::cout << "Loading... [" << n + 1 << " of " << auctionInfo["totalPages"] << "]" << std::endl;
             }
 
-            std::cout << "Loading... [" << n + 1 << " of " << pages << "]" << std::endl;
+
+            for (const std::pair<const std::string, unsigned long>& n : itemMap)
+            {
+                print_key_value(n.first, n.second);
+            }
         }
-
-
-        for (const std::pair<const std::string, unsigned long>& n : itemMap)
-            print_key_value(n.first, n.second);
     }
     catch (const std::exception& e)
     {

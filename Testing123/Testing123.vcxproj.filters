@@ -1131,6 +1131,9 @@
     <ClInclude Include="include\zlib\zutil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="utility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\lib\Makefile.inc">
@@ -1172,6 +1175,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\zlib\zutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utility.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="auctionFlipper.cpp">
