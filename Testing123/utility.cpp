@@ -5,15 +5,11 @@
 #include <zlib/zlib.h>
 
 #include <urlmon.h>
-#include <windows.h>
 
 #include <iostream>
-#include <string>
 #include <vector>
 #include <limits.h>
 #include <unordered_map>
-#include <codecvt>
-#include <fstream>
 
 #pragma comment(lib, "urlmon.lib")
 
@@ -31,7 +27,7 @@ std::vector<unsigned char> base64_decode(const std::string& encoded)
     {
         if (isspace(c)) continue; // skip whitespace
         if (c == '=') break;
-        int index = base64_chars.find(c);
+        size_t index = base64_chars.find(c);
         if (index == std::string::npos) throw std::runtime_error("Invalid base64 character");
         val = (val << 6) + index;
         valb += 6;
@@ -92,7 +88,7 @@ std::string DownloadUrlContent(const std::string& url)
     if (SUCCEEDED(URLOpenBlockingStreamA(nullptr, url.c_str(), &tempStream, 0, nullptr))) {
 
         std::string content;
-        char buffer[524288];
+        char buffer[8192];
         ULONG bytesRead = 0;
 
         while (SUCCEEDED(tempStream->Read(buffer, sizeof(buffer), &bytesRead)) && bytesRead > 0) {
@@ -102,6 +98,8 @@ std::string DownloadUrlContent(const std::string& url)
         tempStream->Release();
         return content;
     }
+
+    return "";
 }
 
 std::string truncate(std::string number)
@@ -119,15 +117,41 @@ std::string truncate(std::string number)
     return number;
 }
 
-std::string readFile(const std::string& filepath)
+std::string getID(const std::string& item_bytes)
 {
-    std::string ret;
-    std::string text;
-    std::ifstream MyFile(filepath);
-    while (std::getline(MyFile, text))
+    size_t indexID = NULL;
+    size_t indexEND = NULL;
+    std::vector<unsigned char> decompressedData;
+    decompressedData.reserve(256);
+    decompressedData = decompressGzip(base64_decode(item_bytes));
+    std::string skyblockID;
+    for (size_t j = 0; j < decompressedData.size() - 3; j++)
     {
-        ret += text;
+        //if in the form id X
+        if ((int)decompressedData[j] == 105 && (int)decompressedData[j + 1] == 100 && (int)decompressedData[j + 2] == 0 && (int)decompressedData[j - 1] != 117)
+        {
+            indexID = j;
+            size_t x = j + 4;
+            while (true)
+            {
+                if ((int)decompressedData[x] == 0)
+                {
+                    if ((int)decompressedData[x + 1] == 0) indexEND = x + 1;
+                    else indexEND = x;
+                    break;
+                }
+                x++;
+            }
+        }
     }
-    MyFile.close();
-    return ret;
+
+    if (indexID == NULL) throw std::runtime_error("Failed to assign ID index properly.");
+    if (indexEND == NULL) throw std::runtime_error("Failed to assign END index properly.");
+
+    for (size_t j = indexID + 4; j < indexEND - 1; j++)
+    {
+        skyblockID += decompressedData[j];
+    }
+
+    return skyblockID;
 }

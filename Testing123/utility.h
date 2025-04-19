@@ -2,9 +2,6 @@
 
 #include <string>
 #include <vector>
-#include <zlib/zlib.h>
-#include <windows.h>
-#include <urlmon.h>
 
 std::vector<unsigned char> base64_decode(const std::string& encoded);
 
@@ -17,4 +14,4 @@ std::string DownloadUrlContent(const std::string& url);
 
 std::string truncate(std::string number);
 
-std::string readFile(const std::string& filepath);
+std::string getID(const std::string& item_bytes);
