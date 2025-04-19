@@ -1142,6 +1142,7 @@
     <None Include="x64\auctionRequest.json" />
     <None Include="x64\itemsRequest.json" />
     <None Include="x64\items.values" />
+    <None Include="itemData.info" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="include\zlib\adler32.c">
@@ -1177,10 +1178,10 @@
     <ClCompile Include="include\zlib\zutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="utility.cpp">
+    <ClCompile Include="auctionFlipper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="auctionFlipper.cpp">
+    <ClCompile Include="utility.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

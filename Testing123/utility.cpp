@@ -6,6 +6,7 @@
 
 #include <urlmon.h>
 
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include <limits.h>
@@ -21,7 +22,8 @@ const std::string base64_chars =
 std::vector<unsigned char> base64_decode(const std::string& encoded)
 {
     std::vector<unsigned char> decoded;
-    int val = 0, valb = -8;
+    unsigned int val = 0;
+    int valb = -8;
 
     for (unsigned char c : encoded)
     {
@@ -33,7 +35,7 @@ std::vector<unsigned char> base64_decode(const std::string& encoded)
         valb += 6;
         if (valb >= 0)
         {
-            decoded.push_back((val >> valb) & 0xFF);
+            decoded.push_back((val >> valb) & 0b11111111);
             valb -= 8;
         }
     }
@@ -50,9 +52,7 @@ std::vector<unsigned char> decompressGzip(const std::vector<unsigned char>& comp
     strm.avail_in = compressedData.size();
     strm.next_in = const_cast<unsigned char*>(compressedData.data());
 
-    if (inflateInit2(&strm, 15 + 16) != Z_OK) {
-        throw std::runtime_error("inflateInit2 failed");
-    }
+    if (inflateInit2(&strm, 15 + 16) != Z_OK) throw std::runtime_error("inflateInit2 failed");
 
     unsigned char out[CHUNK];
 
@@ -69,7 +69,8 @@ std::vector<unsigned char> decompressGzip(const std::vector<unsigned char>& comp
         }
 
         decompressedData.insert(decompressedData.end(), out, out + (CHUNK - strm.avail_out));
-    } while (ret != Z_STREAM_END);
+    } 
+    while (ret != Z_STREAM_END);
 
     inflateEnd(&strm);
     return decompressedData;
@@ -154,4 +155,28 @@ std::string getID(const std::string& item_bytes)
     }
 
     return skyblockID;
+}
+
+size_t count(const std::string& string, const std::string& substring)
+{
+    int index = -1;
+    size_t count = 0;
+    while (true)
+    {
+        size_t idx = string.find(substring, index + 1);
+        if (idx == std::string::npos) break;
+        index = idx;
+        count++;
+    }
+    return count;
+}
+
+void storeMap(const char* filepath, const std::unordered_map<std::string, unsigned long>& map)
+{
+    std::ofstream file(filepath);
+    for (const std::pair<const std::string&, unsigned long>& pair : map)
+    {
+        file << "Lowest BIN for " << pair.first << " is " << pair.second << "\n";
+    }
+    file.close();
 }
