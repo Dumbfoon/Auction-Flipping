@@ -171,12 +171,13 @@ size_t count(const std::string& string, const std::string& substring)
     return count;
 }
 
-void storeMap(const char* filepath, const std::unordered_map<std::string, unsigned long>& map)
+void storeMap(const char* filepath, std::unordered_map<std::string, std::string>& IDtoName, std::unordered_map<std::string, unsigned long>& IDtoValue)
 {
     std::ofstream file(filepath);
-    for (const std::pair<const std::string&, unsigned long>& pair : map)
+    for (const auto& pair : IDtoValue)
     {
-        file << "Lowest BIN for " << pair.first << " is " << pair.second << "\n";
+        if (IDtoName.find(pair.first) == IDtoName.end() || IDtoValue.find(pair.first) == IDtoValue.end()) continue;
+        file << "ITEM " << IDtoName[pair.first] << " IS WORTH: " << IDtoValue[pair.first] << "\n";
     }
     file.close();
 }

@@ -18,4 +18,4 @@ std::string getID(const std::string& item_bytes);
 
 size_t count(const std::string& string, const std::string& substring);
 
-void storeMap(const char* filepath, const std::unordered_map<std::string, unsigned long>& map);
+void storeMap(const char* filepath, std::unordered_map<std::string, std::string>& map, std::unordered_map<std::string, unsigned long>& map2);
