@@ -1134,6 +1134,9 @@
     <ClInclude Include="utility.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Pet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\lib\Makefile.inc">
@@ -1143,6 +1146,7 @@
     <None Include="x64\itemsRequest.json" />
     <None Include="x64\items.values" />
     <None Include="itemData.info" />
+    <None Include="petData.info" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="include\zlib\adler32.c">
@@ -1182,6 +1186,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="utility.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Pet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

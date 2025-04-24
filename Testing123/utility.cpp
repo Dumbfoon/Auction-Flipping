@@ -1,7 +1,7 @@
 #pragma once
+#include <nlohmann/json.hpp>
 #include "utility.h"
 
-#include <nlohmann/json.hpp>
 #include <zlib/zlib.h>
 
 #include <urlmon.h>
@@ -11,6 +11,10 @@
 #include <vector>
 #include <limits.h>
 #include <unordered_map>
+#include <utility>
+#include <algorithm>
+
+#define PRINT(X) std::cout << X << "\n"
 
 #pragma comment(lib, "urlmon.lib")
 
@@ -103,6 +107,7 @@ std::string DownloadUrlContent(const std::string& url)
     return "";
 }
 
+
 std::string truncate(std::string number)
 {
     size_t numLength = number.length();
@@ -117,6 +122,70 @@ std::string truncate(std::string number)
 
     return number;
 }
+
+size_t count(const std::string& string, const std::string& substring)
+{
+    int index = -1;
+    size_t count = 0;
+    while (true)
+    {
+        size_t idx = string.find(substring, index + 1);
+        if (idx == std::string::npos) break;
+        index = idx;
+        count++;
+    }
+    return count;
+}
+
+typedef unsigned char BYTE;
+
+std::string strTrim(std::string s, char option = 0)
+{
+    // convert all whitespace characters to a standard space
+    std::replace_if(s.begin(), s.end(), (std::function<int(BYTE)>)::isspace, ' ');
+
+    // remove leading and trailing spaces
+    size_t f = s.find_first_not_of(' ');
+    if (f == std::string::npos) return "";
+    s = s.substr(f, s.find_last_not_of(' ') - f + 1);
+
+    // remove consecutive spaces
+    s = std::string(s.begin(), std::unique(s.begin(), s.end(),
+        [](BYTE l, BYTE r) { return l == ' ' && r == ' '; }));
+
+    switch (option)
+    {
+    case 'l':  // convert to lowercase
+        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+        return s;
+    case 'U':  // convert to uppercase
+        std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+        return s;
+    case 'n':  // remove all spaces
+        s.erase(std::remove(s.begin(), s.end(), ' '), s.end());
+        return s;
+    default: // just trim
+        return s;
+    }
+}
+
+void storeMap(const char* filepath, std::unordered_map<std::string, std::string>& IDtoName, std::unordered_map<std::string, unsigned long>& IDtoValue)
+{
+    std::ofstream file(filepath);
+    for (const auto& pair : IDtoValue)
+    {
+        if (IDtoName.find(pair.first) == IDtoName.end() || IDtoValue.find(pair.first) == IDtoValue.end()) continue;
+        file << "ITEM " << IDtoName[pair.first] << " IS WORTH: " << IDtoValue[pair.first] << "\n";
+    }
+    file.close();
+}
+
+nlohmann::json getURL(const std::string& url)
+{
+    return nlohmann::json::parse(DownloadUrlContent(url));
+}
+
+/*skyblock functions below*/
 
 std::string getID(const std::string& item_bytes)
 {
@@ -157,27 +226,3 @@ std::string getID(const std::string& item_bytes)
     return skyblockID;
 }
 
-size_t count(const std::string& string, const std::string& substring)
-{
-    int index = -1;
-    size_t count = 0;
-    while (true)
-    {
-        size_t idx = string.find(substring, index + 1);
-        if (idx == std::string::npos) break;
-        index = idx;
-        count++;
-    }
-    return count;
-}
-
-void storeMap(const char* filepath, std::unordered_map<std::string, std::string>& IDtoName, std::unordered_map<std::string, unsigned long>& IDtoValue)
-{
-    std::ofstream file(filepath);
-    for (const auto& pair : IDtoValue)
-    {
-        if (IDtoName.find(pair.first) == IDtoName.end() || IDtoValue.find(pair.first) == IDtoValue.end()) continue;
-        file << "ITEM " << IDtoName[pair.first] << " IS WORTH: " << IDtoValue[pair.first] << "\n";
-    }
-    file.close();
-}
