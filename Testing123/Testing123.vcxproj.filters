@@ -1146,7 +1146,6 @@
     <None Include="x64\itemsRequest.json" />
     <None Include="x64\items.values" />
     <None Include="itemData.info" />
-    <None Include="petData.info" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="include\zlib\adler32.c">

@@ -396,7 +396,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="itemData.info" />
-    <None Include="petData.info" />
     <None Include="src\lib\Makefile.inc" />
     <None Include="x64\auctionRequest.json" />
     <None Include="x64\items.values" />

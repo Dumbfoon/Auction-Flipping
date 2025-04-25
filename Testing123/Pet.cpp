@@ -6,6 +6,9 @@
 #include <vector>
 #include <cmath>
 
+/******************************/
+/*pet utility functions*/
+
 std::string rarityToString(Pet::Rarity rarity) 
 {
     switch (rarity) {
@@ -30,42 +33,6 @@ unsigned int rarityToExp(Pet::Rarity rarity)
     default: return 1;
     }
 }
-
-Pet::Pet() { m_CoinsPerEXP = 0; }
-
-Pet::Pet(const std::string& name, Pet::Rarity rarity, int level, unsigned long price) : m_Name(name), m_Rarity(rarity), m_Level(level), m_Price(price) {}
-
-
-bool Pet::operator==(const Pet& other) const
-{
-    if (this->m_Name == other.m_Name && this->m_Rarity == other.m_Rarity && this->m_Level == other.m_Level) return true;
-    return false;
-}
-
-double Pet::getCEXP(const Pet& other) const
-{ 
-    unsigned int expNeeded = rarityToExp(m_Rarity);
-    unsigned long lvl1price = (m_Level < other.m_Level) ? m_Price : other.m_Price;
-    unsigned long lvl100price = (m_Level > other.m_Level) ? m_Price : other.m_Price;
-    if (lvl1price > lvl100price) return 0;
-    return (double)(lvl100price - lvl1price) / (double)expNeeded;
-}
-
-std::ostream& operator<<(std::ostream& os, const Pet& pet)
-{
-    os << "[LVL " << pet.m_Level << "] " << rarityToString(pet.m_Rarity) << " " << pet.m_Name << " - " << truncate(std::to_string(pet.m_Price)) << " coins.\n";
-    return os;
-}
-
-const std::unordered_map<std::string, Pet::Rarity> Pet::tierToRarity = {
-    {"COMMON", Rarity::COMMON},
-    {"UNCOMMON", Rarity::UNCOMMON},
-    {"RARE", Rarity::RARE},
-    {"EPIC", Rarity::EPIC},
-    {"LEGENDARY", Rarity::LEGENDARY},
-    {"MYTHIC", Rarity::MYTHIC}
-};
-
 
 Pet getAsPet(const nlohmann::json& auction)
 {
@@ -99,5 +66,117 @@ Pet getAsPet(const nlohmann::json& auction)
     return Pet(name, rarity, level, price);
 }
 
+void calculateProfit(const std::vector<Pet>& pets, unsigned int amount)
+{
+    using Key = std::pair<std::string, Pet::Rarity>; // (name, rarity)
 
-bool isPet(const nlohmann::json& auction) { return to_string(auction["item_name"]).find("[Lvl") != std::string::npos; }
+    // Idk some witchcraft
+    struct keyHash {
+        std::size_t operator()(const Key& k) const {
+            return std::hash<std::string>()(k.first) ^ std::hash<int>()(static_cast<int>(k.second));
+        }
+    };
+
+    // Maps key (pet name and pet rarity) to pair (lvl 1 price, lvl 100 price)
+    std::unordered_map<Key, std::pair<long long, long long>, keyHash> petMap;
+
+    // Groups the LVL1/LVL100 pets together
+    for (const auto& pet : pets) 
+    {
+        Key key = { pet.m_Name, pet.m_Rarity };
+        if (pet.m_Level == 1) 
+        {
+            petMap[key].first = pet.m_Price;
+        }
+        else if (pet.m_Level == 100) 
+        {
+            petMap[key].second = pet.m_Price;
+        }
+    }
+
+    // How the results are stored
+    struct Result 
+    {
+        std::string name;
+        Pet::Rarity rarity;
+        double coinsPerExp;
+    };
+
+    // Make vector of results
+    std::vector<Result> results;
+
+    // Iterate for every key-costPair
+    for (const auto& [key, costPair] : petMap) 
+    {
+        // Name rarity pair from key
+        const auto& [name, rarity] = key;
+
+        //Get costs from cost pair
+        long long lvl1Cost = costPair.first;
+        long long lvl100Cost = costPair.second;
+
+        if (lvl1Cost > 0 && lvl100Cost > 0 && lvl100Cost > lvl1Cost) 
+        {
+            double coinsPerExp = static_cast<double>(lvl100Cost - lvl1Cost) / rarityToExp(rarity);
+            results.push_back({ name, rarity, coinsPerExp });
+        }
+    }
+
+    // Sort descending by value per exp
+    std::sort(results.begin(), results.end(), 
+        [](const Result& a, const Result& b) 
+        {
+            return a.coinsPerExp > b.coinsPerExp;
+        }
+    );
+
+    // Print (amount) results
+    for (size_t i = 0; i < amount; i++) 
+    {
+        Result r = results[i];
+        std::cout << rarityToString(r.rarity) << " " << r.name << " ( " << r.coinsPerExp << " coins/exp)\n";
+    }
+}
+
+bool isPet(const nlohmann::json& auction) 
+{ 
+    return to_string(auction["item_name"]).find("[Lvl") != std::string::npos; 
+}
+
+std::ostream& operator<<(std::ostream& os, const Pet& pet)
+{
+    os << "[LVL " << pet.m_Level << "] " << rarityToString(pet.m_Rarity) << " " << pet.m_Name << " - " << truncate(std::to_string(pet.m_Price)) << " coins.\n";
+    return os;
+}
+
+/****************************/
+/*pet class functions*/
+Pet::Pet() : m_Name("NULL"), m_Rarity(Pet::Rarity::COMMON), m_Level(1), m_Price(0), m_CoinsPerEXP(0) {}
+
+Pet::Pet(const std::string& name, Pet::Rarity rarity, int level, unsigned long price) : m_Name(name), m_Rarity(rarity), m_Level(level), m_Price(price), m_CoinsPerEXP(0) {}
+
+bool Pet::operator==(const Pet& other) const
+{
+    if (this->m_Name == other.m_Name && this->m_Rarity == other.m_Rarity && this->m_Level == other.m_Level) return true;
+    return false;
+}
+
+double Pet::getCEXP(const Pet& other) const
+{ 
+    unsigned int expNeeded = rarityToExp(m_Rarity);
+    unsigned long lvl1price = (m_Level < other.m_Level) ? m_Price : other.m_Price;
+    unsigned long lvl100price = (m_Level > other.m_Level) ? m_Price : other.m_Price;
+    if (lvl1price > lvl100price) return 0;
+    return (double)(lvl100price - lvl1price) / (double)expNeeded;
+}
+
+/**************************/
+/*pet class members*/
+const std::unordered_map<std::string, Pet::Rarity> Pet::tierToRarity = {
+    {"COMMON", Rarity::COMMON},
+    {"UNCOMMON", Rarity::UNCOMMON},
+    {"RARE", Rarity::RARE},
+    {"EPIC", Rarity::EPIC},
+    {"LEGENDARY", Rarity::LEGENDARY},
+    {"MYTHIC", Rarity::MYTHIC}
+};

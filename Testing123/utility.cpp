@@ -137,38 +137,6 @@ size_t count(const std::string& string, const std::string& substring)
     return count;
 }
 
-typedef unsigned char BYTE;
-
-std::string strTrim(std::string s, char option = 0)
-{
-    // convert all whitespace characters to a standard space
-    std::replace_if(s.begin(), s.end(), (std::function<int(BYTE)>)::isspace, ' ');
-
-    // remove leading and trailing spaces
-    size_t f = s.find_first_not_of(' ');
-    if (f == std::string::npos) return "";
-    s = s.substr(f, s.find_last_not_of(' ') - f + 1);
-
-    // remove consecutive spaces
-    s = std::string(s.begin(), std::unique(s.begin(), s.end(),
-        [](BYTE l, BYTE r) { return l == ' ' && r == ' '; }));
-
-    switch (option)
-    {
-    case 'l':  // convert to lowercase
-        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-        return s;
-    case 'U':  // convert to uppercase
-        std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-        return s;
-    case 'n':  // remove all spaces
-        s.erase(std::remove(s.begin(), s.end(), ' '), s.end());
-        return s;
-    default: // just trim
-        return s;
-    }
-}
-
 void storeMap(const char* filepath, std::unordered_map<std::string, std::string>& IDtoName, std::unordered_map<std::string, unsigned long>& IDtoValue)
 {
     std::ofstream file(filepath);
